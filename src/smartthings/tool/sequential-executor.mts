@@ -1,22 +1,33 @@
-class SequentialExecutor {
-    #fetch;
-    #waiting = [];
-    #executing = false;
+import { Response } from "node-fetch";
+import { TFetch } from "../../type/node-fetch.mjs";
+import attempt from "../../tool/attempt.mjs";
 
-    constructor(fetch) {
+type Job = {
+    resolve: (...args: any[]) => void,
+    reject: (...args: any[]) => void,
+    fn: () => Promise<any>,
+}
+
+class SequentialExecutor {
+    #fetch: Function;
+    #waiting: Job[];
+    #executing: Boolean = false;
+
+    constructor(fetch: TFetch) {
         this.#fetch = fetch;
+        this.#waiting = [];
     }
 
-    execute(requests) {
+    execute(requests): Promise<Response[]> {
         if (!Array.isArray(requests)) {
             requests = [requests];
         }
-        
+
         return new Promise((resolve, reject) => {
             const now = Date.now();
-            
+
             const fetchRequests = async () => {
-                const results = [];
+                const results: Response[] = [];
                 for (const request of requests) {
                     const { path, method, body } = request;
                     const result = await this.#fetch(path, { method, body });
@@ -26,8 +37,6 @@ class SequentialExecutor {
             };
 
             const job = {
-                now,
-                timeoutAt: now + this._jobTimeout,
                 resolve,
                 reject,
                 fn: fetchRequests,
@@ -42,22 +51,22 @@ class SequentialExecutor {
         });
     }
 
-    #startJob(job) {
+    async #startJob(job): Promise<void> {
         this.#executing = true;
 
-        job.fn().then(
-            (...args) => {
-                job.resolve.apply(this, args);
-                this.#finishJob(job);
-            },
-            (...args) => {
-                job.reject.apply(this, args);
-                this.#finishJob(job);
-            },
-        );
+        const [error, result] = await attempt(job.fn());
+
+        if (error) {
+            console.log('job failed', (error as Error)?.message);
+            job.reject.call(this, error);
+        } else {
+            job.resolve.call(this, result);
+        }
+
+        this.#finishJob();
     };
 
-    #finishJob() {
+    #finishJob(): void {
         if (this.#waiting.length) {
             const job = this.#waiting.shift();
             this.#startJob(job);
@@ -67,4 +76,4 @@ class SequentialExecutor {
     }
 }
 
-module.exports = SequentialExecutor;
+export default SequentialExecutor;

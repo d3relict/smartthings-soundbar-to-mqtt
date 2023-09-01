@@ -1,29 +1,47 @@
-class Switch {
-    #client;
-    #config;
-    #device;
-    #payload;
-    #uniqueId;
+import { THomeAssistantConfig } from '../../schema/config.mjs';
+import IDevice from '../interface/device.mjs';
+import { MqttClient } from 'mqtt';
 
-    #state;
-    #setDeviceState;
+type TSetState = (value: boolean) => Promise<void>;
 
-    #stateInterval;
+type TSwitchDependency = {
+    client: MqttClient;
+    setState: TSetState;
+}
 
-    #label;
+type TDevice = {
+    identifiers: string[],
+    name: string,
+    manufacturer: string,
+    model: string,
+}
 
-    get label() {
+class Switch implements IDevice {
+    #client: MqttClient;
+    #config: THomeAssistantConfig;
+    #device: TDevice;
+    #payload: string[];
+    #uniqueId: string;
+
+    #state: Boolean | undefined;
+    #setDeviceState: TSetState;
+
+    #name: string;
+    #label: string;
+
+    get label(): string {
         return this.#label;
     }
 
-    get type() {
-        return this.constuctor.name;
+    get type(): string {
+        return this.constructor.name;
     }
 
-    constructor(config, {client, setState}) {
+    constructor(name: string, label: string, config: THomeAssistantConfig, { client, setState }: TSwitchDependency) {
         this.#config = config;
-        const { label, uniqueId, device, payload: { switch: payload} } = this.#config;
+        const { uniqueId, device, payload: { switch: payload } } = this.#config;
 
+        this.#name = name;
         this.#label = label;
         this.#device = device;
         this.#payload = payload;
@@ -36,7 +54,6 @@ class Switch {
     }
 
     async destroy() {
-        clearInterval(this.#stateInterval);
         this.#publishConfig(null);
     }
 
@@ -47,27 +64,26 @@ class Switch {
         this.#state = value;
         this.#publishState();
     }
-    
+
     async #init() {
-        const { name } = this.#config;
         const stateTopic = `homeassistant/switch/${this.#uniqueId}/state`;
         const commandTopic = `homeassistant/switch/${this.#uniqueId}/set`;
 
         this.#client.on("message", async (topic, payload) => {
-            if (topic != commandTopic){
+            if (topic != commandTopic) {
                 return;
             }
 
             const newState = !!this.#payload.indexOf(payload.toString());
-            
+
             await this.#setDeviceState(newState);
             this.updateState(newState);
         })
-        
+
         this.#client.subscribe(commandTopic);
-        
+
         this.#publishConfig({
-            name,
+            name: this.#name,
             unique_id: this.#uniqueId,
             device_class: 'switch',
             state_topic: stateTopic,
@@ -86,8 +102,8 @@ class Switch {
 
     #publishState() {
         const stateTopic = `homeassistant/switch/${this.#uniqueId}/state`;
-        this.#client.publish(stateTopic, this.#payload[+this.#state]);
+        this.#client.publish(stateTopic, this.#payload[+(this.#state || 0)]);
     }
 }
 
-module.exports = Switch;
+export default Switch;

@@ -1,4 +1,10 @@
-const setAdvancedAudioFeature = (feature, value) => ({
+type requestData = {
+    path: string,
+    method: string,
+    body?: object,
+};
+
+const setAdvancedAudioFeature = (feature: string, value: boolean): requestData[] => ([{
     path: '/commands',
     method: 'post',
     body: {
@@ -16,9 +22,9 @@ const setAdvancedAudioFeature = (feature, value) => ({
             },
         ],
     },
-});
+}]);
 
-const getAdvancedAudioStatus = () => [
+const getAdvancedAudioStatus = (): requestData[] => [
     {
         method: 'post',
         path: '/commands',
@@ -39,7 +45,7 @@ const getAdvancedAudioStatus = () => [
     },
 ];
 
-const getSoundMode = () => [
+const getSoundMode = (): requestData[] => [
     {
         path: '/commands',
         method: 'post',
@@ -60,7 +66,7 @@ const getSoundMode = () => [
     },
 ];
 
-const setSoundMode = value => ({
+const setSoundMode = (value: string): requestData => ({
     path: '/commands',
     method: 'post',
     body: {
@@ -80,7 +86,7 @@ const setSoundMode = value => ({
     },
 });
 
-module.exports = {
+export {
     setAdvancedAudioFeature,
     getAdvancedAudioStatus,
     getSoundMode,

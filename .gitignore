@@ -1,2 +1,3 @@
-config/local.js
+config/local.cjs
 node_modules/
+build/

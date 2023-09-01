@@ -4,6 +4,5 @@ services:
     container_name: smartthings-soundbar-to-mqtt
     build: .
     volumes:
-      - "./lib/:/usr/app/lib"
+      - "./build/:/usr/app/build"
       - "./config/:/usr/app/config"
-      - "./index.js:/usr/app/index.js"

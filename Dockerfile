@@ -6,4 +6,4 @@ COPY package*.json ./
 
 RUN npm install --frozen-lockfile
 
-CMD [ "node", "index.js" ]
+CMD [ "node", "build/service.mjs" ]
