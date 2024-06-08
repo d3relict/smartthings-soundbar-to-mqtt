@@ -34,7 +34,7 @@ client.on('connect', () => {
         { name: 'voice amplifier', label: SmartThings.advancedAudio.VOICE_AMPLIFIER },
     ].map(({ name, label }) =>
         bridge.addSwitch(
-            `${homeassistant.device.name} ${name}`,
+            name,
             label,
             (value) => smartthings.setAdvancedAudioFeature(label, value)
         )
