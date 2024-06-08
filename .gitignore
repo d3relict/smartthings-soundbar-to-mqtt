@@ -1,3 +1,4 @@
 config/local.cjs
 node_modules/
 build/
+docker-compose.yaml
