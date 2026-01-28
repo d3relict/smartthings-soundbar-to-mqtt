@@ -9,6 +9,7 @@ type TSmartthingsDependency = {
 }
 
 type TApiResponse = {
+    items?: [],
     data?: {
         value?: {
             payload: any;
@@ -17,6 +18,8 @@ type TApiResponse = {
 }
 
 class SmartThings {
+    #deviceId;
+
     #sequentialExecutor: SequentialExecutor;
 
     static get advancedAudio() {
@@ -24,6 +27,8 @@ class SmartThings {
     }
 
     constructor(config: TSmartthingsConfig, { fetch }: TSmartthingsDependency) {
+        this.#deviceId = config.deviceId;
+
         const decoratedFetch = (url: RequestInfo, options?: RequestInit) => {
             const fetchUrl = config.baseUrl + url;
             const fetchOptions = JSON.parse(JSON.stringify(options));
@@ -45,7 +50,7 @@ class SmartThings {
     }
 
     async getAdvancedAudioFeatures() {
-        const [, response] = await this.#sequentialExecutor.execute(command.getAdvancedAudioStatus());
+        const [, response] = await this.#sequentialExecutor.execute(command.getAdvancedAudioStatus(this.#deviceId));
         const result = await response.json() as TApiResponse;
         const payload = result?.data?.value?.payload || {};
         console.log(payload);
@@ -63,8 +68,14 @@ class SmartThings {
     }
 
     async setAdvancedAudioFeature(feature: string, value: boolean) {
-        await this.#sequentialExecutor.execute(command.setAdvancedAudioFeature(feature, value));
+        await this.#sequentialExecutor.execute(command.setAdvancedAudioFeature(this.#deviceId, feature, value));
     }
+
+    async getDevices() {
+        const [response] = await this.#sequentialExecutor.execute(command.getDevices());
+        const result = await response.json() as TApiResponse;
+        return result?.items || [];
+    };
 }
 
 export default SmartThings;

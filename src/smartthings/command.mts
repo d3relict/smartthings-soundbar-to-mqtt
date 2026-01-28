@@ -4,8 +4,13 @@ type requestData = {
     body?: object,
 };
 
-const setAdvancedAudioFeature = (feature: string, value: boolean): requestData[] => ([{
-    path: '/commands',
+const getDevices = () => ([{
+    path: '/devices',
+    method: 'get',
+}]);
+
+const setAdvancedAudioFeature = (deviceId: string, feature: string, value: boolean): requestData[] => ([{
+    path: `/devices/${deviceId}/commands`,
     method: 'post',
     body: {
         commands: [
@@ -24,10 +29,10 @@ const setAdvancedAudioFeature = (feature: string, value: boolean): requestData[]
     },
 }]);
 
-const getAdvancedAudioStatus = (): requestData[] => [
+const getAdvancedAudioStatus = (deviceId: string): requestData[] => [
     {
+        path: `/devices/${deviceId}/commands`,
         method: 'post',
-        path: '/commands',
         body: {
             commands: [
                 {
@@ -40,14 +45,14 @@ const getAdvancedAudioStatus = (): requestData[] => [
         },
     },
     {
-        path: '/components/main/capabilities/execute/status',
+        path: `/devices/${deviceId}/components/main/capabilities/execute/status`,
         method: 'get',
     },
 ];
 
-const getSoundMode = (): requestData[] => [
+const getSoundMode = (deviceId: string): requestData[] => [
     {
-        path: '/commands',
+        path: `/devices/${deviceId}/commands`,
         method: 'post',
         body: {
             commands: [
@@ -61,13 +66,13 @@ const getSoundMode = (): requestData[] => [
         },
     },
     {
-        path: '/components/main/capabilities/execute/status',
+        path: `/devices/${deviceId}/components/main/capabilities/execute/status`,
         method: 'get',
     },
 ];
 
-const setSoundMode = (value: string): requestData => ({
-    path: '/commands',
+const setSoundMode = (deviceId: string, value: string): requestData => ({
+    path: `/devices/${deviceId}/commands`,
     method: 'post',
     body: {
         commands: [
@@ -87,6 +92,7 @@ const setSoundMode = (value: string): requestData => ({
 });
 
 export {
+    getDevices,
     setAdvancedAudioFeature,
     getAdvancedAudioStatus,
     getSoundMode,

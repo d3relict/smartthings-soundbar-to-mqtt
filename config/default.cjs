@@ -5,7 +5,7 @@ module.exports = {
     mqtt: {
     },
     smartthings: {
-        baseUrl: deferConfig(config => `https://api.smartthings.com/v1/devices/${config.smartthings.deviceId}`),
+        baseUrl: deferConfig(config => `https://api.smartthings.com/v1/`),
     },
     homeassistant: {
         uniqueId: deferConfig(config => config.smartthings.deviceId),
