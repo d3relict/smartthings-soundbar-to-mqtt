@@ -13,6 +13,7 @@ module.exports = {
             identifiers: [deferConfig(config => `${config.smartthings.deviceId}`),],
         },
         payload: {
+            availability: ['Offline', 'Online'],
             switch: ['Off', 'On'],
         }
     }

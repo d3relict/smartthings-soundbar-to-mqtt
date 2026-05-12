@@ -9,6 +9,7 @@ const homeAssistantConfigSchema = z.object({
         identifiers: z.array(z.string()),
     }),
     payload: z.object({
+        availability: z.array(z.string()).length(2),
         switch: z.array(z.string()).length(2),
     }),
 });

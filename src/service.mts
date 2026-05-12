@@ -15,17 +15,52 @@ const smartthings = new SmartThings(serviceConfig.smartthings, { fetch });
 
 let bridge: Bridge;
 let stateInterval: NodeJS.Timer;
+let availabilityInterval: NodeJS.Timer;
 
 console.log(serviceConfig);
 
 const { url, username, password } = serviceConfig.mqtt;
-const client: MqttClient = mqtt.connect(url, { username, password });
+const { homeassistant } = serviceConfig;
+const availabilityTopic = `homeassistant/${homeassistant.uniqueId}/availability`;
+const [offlinePayload, onlinePayload] = homeassistant.payload.availability;
 
-client.on('connect', () => {
+const client: MqttClient = mqtt.connect(url, {
+    username,
+    password,
+    will: {
+        topic: availabilityTopic,
+        payload: Buffer.from(offlinePayload),
+        qos: 1,
+        retain: true,
+    },
+});
+
+const publishOnline = () => {
+    client.publish(availabilityTopic, onlinePayload, { retain: true });
+};
+
+const publishOffline = () => {
+    client.publish(availabilityTopic, offlinePayload, { retain: true });
+};
+
+client.on('connect', async () => {
     console.log('connected');
-    const { homeassistant } = serviceConfig;
 
-    bridge = new Bridge(homeassistant, { client });
+    publishOnline();
+
+    // Start or restart availability heartbeat (15 seconds)
+    if (availabilityInterval) {
+        clearInterval(availabilityInterval);
+    }
+    availabilityInterval = setInterval(publishOnline, 15 * 1000);
+
+    if (bridge) {
+        // Reconnection - just republish availability and configs
+        bridge.republish();
+        return;
+    }
+
+    bridge = new Bridge(homeassistant, { client, availabilityTopic });
 
     // advancedaudio feature switches
     [
@@ -43,7 +78,7 @@ client.on('connect', () => {
     const getAdvancedAudioFeatures = async () => {
         const advancedAudioState = await smartthings.getAdvancedAudioFeatures();
         bridge.devices.forEach(ref => {
-            console.log(ref.label, advancedAudioState);
+            console.log(`${ref.label} state: ${advancedAudioState[ref.label]}`);
             if (!advancedAudioState.hasOwnProperty(ref.label)) {
                 return;
             }
@@ -51,12 +86,30 @@ client.on('connect', () => {
         });
     }
 
-    stateInterval = setInterval(getAdvancedAudioFeatures, 3000);
+    // stateInterval = setInterval(getAdvancedAudioFeatures, 3000);
+
+    const devices = await smartthings.getDevices();
+    console.log(devices);
+    getAdvancedAudioFeatures();
+});
+
+client.on('reconnect', () => {
+    console.log('reconnecting...');
+});
+
+client.on('offline', () => {
+    console.log('mqtt client offline');
+});
+
+client.on('error', (err) => {
+    console.error('mqtt client error:', err);
 });
 
 const shutdown = async () => {
-    clearInterval(stateInterval);
+    // clearInterval(stateInterval);
+    clearInterval(availabilityInterval);
     await bridge.destroy();
+    publishOffline();
     client.end();
 };
 

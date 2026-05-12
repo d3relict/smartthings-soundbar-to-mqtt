@@ -1,24 +1,29 @@
 import Switch from './device/switch.mjs';
-import IDevice from './interface/device.mjs';
 import { THomeAssistantConfig } from '../schema/config.mjs';
 import { MqttClient } from 'mqtt';
 
-type THomeAssistantDependency = { client: MqttClient };
+type THomeAssistantDependency = { client: MqttClient; availabilityTopic: string };
 
 class Bridge {
     #config: THomeAssistantConfig;
     #client: MqttClient;
-    #devices: IDevice[];
+    #devices: Switch[];
+    #availabilityTopic: string;
 
     get devices() {
         return this.#devices;
     }
 
-    constructor(config: THomeAssistantConfig, { client }: THomeAssistantDependency) {
+    constructor(config: THomeAssistantConfig, { client, availabilityTopic }: THomeAssistantDependency) {
         this.#config = config;
         this.#client = client;
         this.#devices = [];
+        this.#availabilityTopic = availabilityTopic;
         console.log(config);
+    }
+
+    republish() {
+        this.#devices.forEach(device => device.republish());
     }
 
     destroy() {
@@ -33,6 +38,7 @@ class Bridge {
                 this.#config, {
                 client: this.#client,
                 setState,
+                availabilityTopic: this.#availabilityTopic,
             })
         );
     }
